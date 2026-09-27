@@ -1,0 +1,11 @@
+{
+  "name": "plywalnia-skrodzkich",
+  "private": true,
+  "description": "Pływalnia Skrodzkich — front (docs/) i API Apps Script (apps-script/)",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

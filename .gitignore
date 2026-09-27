@@ -1,0 +1,10 @@
+# Dane osobowe dzieci i materiały robocze: tylko lokalnie (Z-12)
+.raporty/
+ZLECENIE-*.md
+CLAUDE.local.md
+*.local.*
+
+# Narzędzia
+node_modules/
+.clasprc.json
+.env

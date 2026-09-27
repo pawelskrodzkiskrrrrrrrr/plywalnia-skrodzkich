@@ -60,6 +60,11 @@ async function boot({ kod = 'rodzina', pin = '4321', viewport = 1200 } = {}) {
 const $ = (doc, s) => doc.querySelector(s);
 function type(win, el, v) { el.value = v; el.dispatchEvent(new win.Event('input', { bubbles: true })); }
 
+test('config.js: adres Web Appa Apps Script (https, /exec)', () => {
+  const src = fs.readFileSync(path.join(DOCS, 'config.js'), 'utf8');
+  assert.match(src, /apiUrl: 'https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec'/);
+});
+
 test('head: noindex, viewport, lang', () => {
   const html = fs.readFileSync(path.join(DOCS, 'index.html'), 'utf8');
   assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
@@ -189,7 +194,9 @@ test('brak adresu API: czytelny komunikat', async () => {
   const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://x.test/' });
   const win = dom.window;
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
-  win.eval(fs.readFileSync(path.join(DOCS, 'config.js'), 'utf8'));
+  // Jawnie pusty adres: prawdziwy docs/config.js po wdrożeniu zawiera już URL Web Appa.
+  win.eval('window.PLYW_CONFIG={apiUrl:""}');
+  win.fetch = () => { throw new Error('test nie może łączyć się z siecią'); };
   for (const f of ['logic.js', 'api.js', 'app.js']) win.eval(fs.readFileSync(path.join(DOCS, f), 'utf8'));
   await tick(5);
   assert.match(win.document.querySelector('.state').textContent, /Baza wyników niedostępna/);

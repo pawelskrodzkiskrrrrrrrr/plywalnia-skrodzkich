@@ -28,13 +28,12 @@ Tego wariantu używasz, gdy `clasp login` nie działa (np. `access_denied`). Ca�
 2. Kliknij **Sprawdź uprawnienia** i wybierz swoje konto. Potem kliknij **Zaawansowane**, dalej **Przejdź do projektu „Pływalnia Skrodzkich — API” (niebezpieczne)**, a na końcu **Zezwól**.
    Skrypt prosi tylko o dostęp do arkuszy.
 
-## 5. Ustaw kody
+## 5. Ustaw kod rodzinny
 
 1. Kliknij ⚙ **Ustawienia projektu**, przewiń do **Właściwości skryptu** i wybierz **Dodaj właściwość skryptu**:
-   - `PIN_EDYCJI`: Twój PIN do zapisu (zalecane ≥ 6 cyfr)
    - `KOD_RODZINNY`: kod do oglądania (zalecane ≥ 8 znaków)
 2. Kliknij **Zapisz właściwości skryptu**.
-3. Wróć do edytora i jeszcze raz **Uruchom** `autoryzuj`. W dzienniku ma być: `KOD_RODZINNY: ustawiony, PIN_EDYCJI: ustawiony`.
+3. Wróć do edytora i jeszcze raz **Uruchom** `autoryzuj`. W dzienniku ma być: `KOD_RODZINNY: ustawiony`.
 
 ## 6. Wdróż jako Web App
 

@@ -9,4 +9,4 @@ Prywatna, rodzinna aplikacja z wynikami pływackimi. Strona ma `noindex`, a dane
 
 Wdrożenie API: `powershell -ExecutionPolicy Bypass -File wdroz.ps1`.
 
-Sekrety (`KOD_RODZINNY`, `PIN_EDYCJI`) są wyłącznie w Script Properties projektu Apps Script.
+Sekret `KOD_RODZINNY` jest wyłącznie w Script Properties projektu Apps Script. Zapis i usuwanie nie wymagają PIN-u.

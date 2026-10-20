@@ -1,6 +1,6 @@
 /* Pływalnia Skrodzkich — logika UI.
    Przeniesiona 1:1 z referencja/app-claude-artifact.html. Zmieniona jest tylko warstwa danych:
-   zamiast window.claude.use('db') jest PlywApi (Apps Script), plus ekran kodu rodzinnego i pole PIN. */
+   zamiast window.claude.use('db') jest PlywApi (Apps Script), plus ekran kodu rodzinnego. */
 (function(){
 const L=window.PlywLogic, Api=window.PlywApi;
 /* ================= model ================= */
@@ -255,7 +255,6 @@ function openForm(meet){
         <button class="btn ghost" type="button" id="fAddRow" style="align-self:flex-start">＋ Dodaj konkurencję</button>
       </div>
       <div class="fld"><label for="fNote">Uwagi</label><textarea class="inp" id="fNote" rows="2" placeholder="np. sztafeta, międzyczasy, miejsce">${esc(meet?.note||'')}</textarea></div>
-      <div class="fld pinfld" id="fPinWrap" hidden><label for="fPin">PIN do edycji</label><input class="inp" type="password" id="fPin" inputmode="numeric" autocomplete="off"><span class="hint">Pytamy raz na sesję przeglądarki. PIN nie jest zapisywany na stałe.</span></div>
     </form>
     <div class="panel-foot">
       <div id="fDelWrap">${editing?'<button class="btn danger" type="button" id="fDel">Usuń zawody</button>':''}</div>
@@ -282,21 +281,13 @@ function openForm(meet){
   $('#fClose').onclick=close;$('#fCancel').onclick=close;
   $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});
   document.addEventListener('keydown',function k(e){if(e.key==='Escape'){close();document.removeEventListener('keydown',k)}});
-  /* PIN: pytamy przy pierwszym zapisie w sesji; przy błędnym PIN-ie pole wraca z komunikatem */
-  const pinWrap=$('#fPinWrap'),pinInp=$('#fPin');
-  if(!Api.pin.get())pinWrap.hidden=false;
-  const pinValue=()=>pinWrap.hidden?'':pinInp.value.trim();
-  const needPin=()=>{if(!pinWrap.hidden&&!pinInp.value.trim()){$('#fErr').textContent='Podaj PIN do edycji';pinInp.focus();return true}return false};
-  const apiErr=(e,prefix)=>{
-    if(e&&(e.code==='pin'||e.code==='blokada')){pinWrap.hidden=false;pinInp.value='';if(e.code==='pin')pinInp.focus()}
-    return e&&e.message?e.message:prefix+' — spróbuj ponownie';
-  };
+  const apiErr=(e,prefix)=>e&&e.message?e.message:prefix+' — spróbuj ponownie';
   if(editing)$('#fDel').onclick=()=>{
     $('#fDelWrap').innerHTML=`<div class="confirm">Usunąć „${esc(meet.name)}” (${esc(fmtDate(meet.date,meet.approx))})? <button class="btn danger" type="button" id="fDelYes">Usuń</button><button class="btn" type="button" id="fDelNo">Nie</button></div>`;
     $('#fDelNo').onclick=()=>{close();openForm(meet)};
-    $('#fDelYes').onclick=async()=>{$('#fErr').textContent='';if(needPin())return;
+    $('#fDelYes').onclick=async()=>{$('#fErr').textContent='';
       const b=$('#fDelYes');b.disabled=true;
-      try{applyData(await Api.deleteMeet(meet.id,pinValue()));close();render();toast('Usunięto zawody')}
+      try{applyData(await Api.deleteMeet(meet.id));close();render();toast('Usunięto zawody')}
       catch(e){b.disabled=false;$('#fErr').textContent='Nie udało się usunąć: '+apiErr(e,'błąd')}}};
   $('#fSave').onclick=async()=>{
     const err=$('#fErr');err.textContent='';
@@ -308,13 +299,12 @@ function openForm(meet){
       if(t==null||isNaN(t)||t<=0){bad=true;return} results[e]={t:Math.round(t*100)/100};if(r.dataset.note)results[e].n=r.dataset.note});
     if(bad){err.textContent='Popraw czasy oznaczone na czerwono';return}
     if(!Object.keys(results).length){err.textContent='Wpisz co najmniej jeden czas';return}
-    if(needPin())return;
     // PBs beaten
     const newPbs=Object.entries(results).filter(([e,r])=>{const s=series(kid,e).filter(p=>!meet||p.m.id!==meet.id);return s.length&&r.t<Math.min(...s.map(p=>p.t))});
     const doc={kid,name,date,approx:$('#fApprox').checked,pool:$('#fPool').value,note:$('#fNote').value.trim(),results};
     const btn=$('#fSave');btn.disabled=true;btn.textContent='Zapisuję…';
     try{
-      applyData(await Api.upsertMeet(L.toApiMeet(editing?meet.id:null,doc),pinValue()));
+      applyData(await Api.upsertMeet(L.toApiMeet(editing?meet.id:null,doc)));
       close(); ui.kid=kid; saveUi(); render();
       const kn=kids.find(k=>k.id===kid)?.name||'';
       if(newPbs.length)toast(`Nowa życiówka${newPbs.length>1?'i':''}: ${kn} — ${newPbs.map(([e,r])=>evLabel(e)+' '+fmt(r.t)).join(', ')}`,true);

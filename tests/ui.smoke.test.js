@@ -24,7 +24,7 @@ function baza() {
   };
 }
 
-async function boot({ kod = 'rodzina', pin = '4321', viewport = 1200 } = {}) {
+async function boot({ kod = 'rodzina', viewport = 1200 } = {}) {
   const db = baza();
   const calls = [];
   const html = fs.readFileSync(path.join(DOCS, 'index.html'), 'utf8').replace(/<script src=[^>]+><\/script>/g, '');
@@ -41,7 +41,6 @@ async function boot({ kod = 'rodzina', pin = '4321', viewport = 1200 } = {}) {
     let res;
     const dane = () => Object.assign({ ok: true }, JSON.parse(JSON.stringify(db)));
     if (body.action === 'list') res = body.kod === kod ? dane() : { ok: false, code: 'kod', error: body.kod ? 'Błędny kod rodzinny.' : 'Podaj kod rodzinny.' };
-    else if (body.pin !== pin) res = { ok: false, code: 'pin', error: 'Błędny PIN do edycji.' };
     else if (body.action === 'upsertMeet') {
       const m = body.meet, id = m.id || m.zawodnik + '-' + m.data + '-abcde';
       db.wyniki = db.wyniki.filter(x => x.id_zawodow !== id).concat(m.wyniki.map(x => ({ id_zawodow: id, zawodnik: m.zawodnik, data: m.data, data_orientacyjna: m.data_orientacyjna, zawody: m.zawody, basen_m: m.basen_m, uwagi_zawodow: m.uwagi_zawodow, konkurencja: x.konkurencja, czas_s: x.czas_s, uwagi_wyniku: x.uwagi_wyniku })));
@@ -124,11 +123,12 @@ test('widoki: podsumowanie, rekordy, tabela (siatka i lista), wykres, filtr base
   assert.equal(doc.querySelector('.stat .val').textContent, '1');
 });
 
-test('dodawanie: podpowiedź życiówki, PIN przy pierwszym zapisie, payload API, PIN tylko w sessionStorage', async () => {
+test('dodawanie: podpowiedź życiówki, zapis bez PIN-u, payload API', async () => {
   const { win, doc, calls } = await zalogowany();
   $(doc, '#addBtn').click();
   assert.ok($(doc, '#ov'));
-  assert.equal($(doc, '#fPinWrap').hidden, false, 'pole PIN widoczne w pierwszym zapisie');
+  assert.equal($(doc, '#fPinWrap'), null, 'brak pola PIN');
+  assert.equal($(doc, '#fPin'), null);
   type(win, $(doc, '#fName'), 'Test');
   $(doc, '#fDate').value = '2026-09-20';
   const rows = doc.querySelectorAll('.rrow');
@@ -137,38 +137,22 @@ test('dodawanie: podpowiedź życiówki, PIN przy pierwszym zapisie, payload API
   assert.match(dow.querySelector('.hint').textContent, /38,10 · nowa życiówka! −0,40 s/);
   type(win, dow.children[1], '38.7');
   assert.match(dow.querySelector('.hint').textContent, /^38,70 · PB 38,50/);
-  // bez PIN-u
   $(doc, '#fSave').click(); await tick(5);
-  assert.equal($(doc, '#fErr').textContent, 'Podaj PIN do edycji');
-  assert.equal(calls.filter(c => c.body.action === 'upsertMeet').length, 0);
-  // zły PIN
-  $(doc, '#fPin').value = '0000';
-  $(doc, '#fSave').click(); await tick(5);
-  assert.equal($(doc, '#fErr').textContent, 'Błędny PIN do edycji.');
-  assert.equal(win.sessionStorage.getItem('plyw-pin'), null);
-  // dobry PIN
-  $(doc, '#fPin').value = '4321';
-  $(doc, '#fSave').click(); await tick(5);
+  assert.equal(calls.filter(c => c.body.action === 'upsertMeet').length, 1, 'jeden zapis od razu');
   const up = calls.filter(c => c.body.action === 'upsertMeet').pop().body;
-  assert.equal(up.pin, '4321');
+  assert.equal('pin' in up, false, 'payload bez PIN-u');
   assert.equal(up.meet.zawodnik, 'a');
   assert.equal(up.meet.data, '2026-09-20');
   assert.deepEqual(up.meet.wyniki.find(x => x.konkurencja === 'dow_50'), { konkurencja: 'dow_50', czas_s: 38.7, uwagi_wyniku: '' });
   assert.equal($(doc, '#ov'), null, 'panel zamknięty');
   assert.match($(doc, '.toast').textContent, /Zapisano wyniki/);
-  assert.equal(win.sessionStorage.getItem('plyw-pin'), '4321');
+  assert.equal(win.sessionStorage.getItem('plyw-pin'), null);
   assert.equal(win.localStorage.getItem('plyw-pin'), null);
   assert.equal(doc.querySelectorAll('.stat .val')[0].textContent, '4');
-  // drugi zapis w tej sesji: bez pytania o PIN
-  doc.querySelector('[data-view="tabela"]').click();
-  doc.querySelector('[data-mode="lista"]').click();
-  doc.querySelector('[data-edit]').click();
-  assert.equal($(doc, '#fPinWrap').hidden, true);
 });
 
 test('edycja i usuwanie z potwierdzeniem na stronie', async () => {
-  const { win, doc, calls } = await zalogowany();
-  win.sessionStorage.setItem('plyw-pin', '4321');
+  const { doc, calls } = await zalogowany();
   doc.querySelector('[data-view="tabela"]').click();
   doc.querySelector('[data-mode="lista"]').click();
   doc.querySelector('[data-edit="a-3"]').click();
@@ -177,7 +161,7 @@ test('edycja i usuwanie z potwierdzeniem na stronie', async () => {
   assert.match($(doc, '.confirm').textContent, /Usunąć „Zawody a-3”/);
   $(doc, '#fDelYes').click(); await tick(5);
   const del = calls.filter(c => c.body.action === 'deleteMeet').pop().body;
-  assert.equal(del.id, 'a-3'); assert.equal(del.pin, '4321');
+  assert.equal(del.id, 'a-3'); assert.equal('pin' in del, false);
   assert.match($(doc, '.toast').textContent, /Usunięto zawody/);
   assert.equal(doc.querySelectorAll('.stat .val')[0].textContent, '2');
 });

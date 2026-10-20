@@ -68,7 +68,7 @@ const MEET = { zawodnik: 'a', data: '2026-09-20', data_orientacyjna: false, zawo
   wyniki: [{ konkurencja: 'dow_50', czas_s: 29.99, uwagi_wyniku: '' }, { konkurencja: 'dow_100', czas_s: 64.03, uwagi_wyniku: 'mc' }] };
 
 test('list: bez KOD_RODZINNY dane są otwarte i znormalizowane', () => {
-  const { call } = env({ PIN_EDYCJI: '1234' });
+  const { call } = env({});
   const r = call({ action: 'list' });
   assert.equal(r.ok, true);
   assert.equal(r.zawodnicy.length, 2);
@@ -90,8 +90,8 @@ test('list: przy ustawionym KOD_RODZINNY bez kodu i ze złym kodem nie ma danych
 });
 
 test('upsertMeet: nowy wpis — wiersze, id, kolumna czas, formaty', () => {
-  const { call, sheets, isLocked } = env({ PIN_EDYCJI: '1234' });
-  const r = call({ action: 'upsertMeet', pin: '1234', meet: MEET });
+  const { call, sheets, isLocked } = env({});
+  const r = call({ action: 'upsertMeet', meet: MEET });
   assert.equal(r.ok, true, r.error);
   assert.match(r.id, /^a-2026-09-20-[a-z0-9]{5}$/);
   const rows = sheets.wyniki.rows.filter(x => x[0] === r.id);
@@ -104,9 +104,9 @@ test('upsertMeet: nowy wpis — wiersze, id, kolumna czas, formaty', () => {
 });
 
 test('upsertMeet: edycja zastępuje wszystkie wiersze o danym id', () => {
-  const { call, sheets } = env({ PIN_EDYCJI: '1234' });
+  const { call, sheets } = env({});
   const m = Object.assign({}, MEET, { id: 'a-2024-01-01-x', data_orientacyjna: true, wyniki: [{ konkurencja: 'grz_50', czas_s: 34.5 }] });
-  const r = call({ action: 'upsertMeet', pin: '1234', meet: m });
+  const r = call({ action: 'upsertMeet', meet: m });
   assert.equal(r.ok, true, r.error);
   const rows = sheets.wyniki.rows.filter(x => x[0] === 'a-2024-01-01-x');
   assert.equal(rows.length, 1);
@@ -116,14 +116,14 @@ test('upsertMeet: edycja zastępuje wszystkie wiersze o danym id', () => {
 });
 
 test('upsertMeet: edycja nieistniejącego id jest odrzucana', () => {
-  const { call, sheets } = env({ PIN_EDYCJI: '1234' });
-  const r = call({ action: 'upsertMeet', pin: '1234', meet: Object.assign({}, MEET, { id: 'nie-ma' }) });
+  const { call, sheets } = env({});
+  const r = call({ action: 'upsertMeet', meet: Object.assign({}, MEET, { id: 'nie-ma' }) });
   assert.equal(r.ok, false); assert.equal(r.code, 'brak');
   assert.equal(sheets.wyniki.rows.length, 4);
 });
 
 test('upsertMeet: walidacja po stronie serwera', () => {
-  const { call, sheets } = env({ PIN_EDYCJI: '1234' });
+  const { call, sheets } = env({});
   const bad = [
     [{ data: '20.09.2026' }, /data/i],
     [{ data: '2026-02-30' }, /data/i],
@@ -139,40 +139,29 @@ test('upsertMeet: walidacja po stronie serwera', () => {
     [{ wyniki: [{ konkurencja: 'dow_50', czas_s: 30 }, { konkurencja: 'dow_50', czas_s: 31 }] }, /dwa razy/],
   ];
   for (const [patch, re] of bad) {
-    const r = call({ action: 'upsertMeet', pin: '1234', meet: Object.assign({}, MEET, patch) });
+    const r = call({ action: 'upsertMeet', meet: Object.assign({}, MEET, patch) });
     assert.equal(r.ok, false, JSON.stringify(patch));
     assert.match(r.error, re);
   }
   assert.equal(sheets.wyniki.rows.length, 4);
 });
 
-test('upsertMeet: zły PIN nic nie zapisuje, 5 błędów → blokada', () => {
-  const { call, sheets } = env({ PIN_EDYCJI: '1234' });
-  for (let i = 0; i < 4; i++) {
-    const r = call({ action: 'upsertMeet', pin: '0000', meet: MEET });
-    assert.equal(r.ok, false); assert.equal(r.code, 'pin');
-  }
-  const r5 = call({ action: 'upsertMeet', pin: '0000', meet: MEET });
-  assert.equal(r5.code, 'blokada');
-  const dobry = call({ action: 'upsertMeet', pin: '1234', meet: MEET });   // w czasie blokady nawet dobry PIN
-  assert.equal(dobry.ok, false); assert.equal(dobry.code, 'blokada');
-  assert.equal(sheets.wyniki.rows.length, 4);
+test('upsertMeet: zapis bez PIN-u (PIN_EDYCJI nie jest już używany)', () => {
+  const { call, sheets } = env({ KOD_RODZINNY: 'tajne', PIN_EDYCJI: '1234' });
+  const r = call({ action: 'upsertMeet', meet: MEET });
+  assert.equal(r.ok, true, r.error);
+  assert.equal(sheets.wyniki.rows.length, 6);
+  assert.equal(call({ action: 'upsertMeet', pin: 'zly', meet: MEET }).ok, true);   // stare pole pin ignorowane
 });
 
-test('upsertMeet: bez ustawionego PIN_EDYCJI zapis wyłączony', () => {
-  const { call } = env({});
-  const r = call({ action: 'upsertMeet', pin: '', meet: MEET });
-  assert.equal(r.ok, false); assert.match(r.error, /PIN_EDYCJI/);
-});
-
-test('deleteMeet: usuwa wszystkie wiersze zawodów; zły PIN nie usuwa', () => {
-  const { call, sheets } = env({ PIN_EDYCJI: '1234' });
-  assert.equal(call({ action: 'deleteMeet', pin: 'x', id: 'a-2024-01-01-x' }).ok, false);
+test('deleteMeet: usuwa wszystkie wiersze zawodów bez PIN-u; niepoprawne id nic nie usuwa', () => {
+  const { call, sheets } = env({});
+  assert.equal(call({ action: 'deleteMeet', id: 'ZŁE ID' }).code, 'dane');
   assert.equal(sheets.wyniki.rows.length, 4);
-  const r = call({ action: 'deleteMeet', pin: '1234', id: 'a-2024-01-01-x' });
+  const r = call({ action: 'deleteMeet', id: 'a-2024-01-01-x' });
   assert.equal(r.ok, true); assert.equal(r.usuniete, 2);
   assert.equal(sheets.wyniki.rows.length, 2);
-  assert.equal(call({ action: 'deleteMeet', pin: '1234', id: 'a-2024-01-01-x' }).code, 'brak');
+  assert.equal(call({ action: 'deleteMeet', id: 'a-2024-01-01-x' }).code, 'brak');
 });
 
 test('zapytania niepoprawne', () => {

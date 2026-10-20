@@ -3,11 +3,12 @@
  *
  * Wszystkie wywołania: POST, Content-Type: text/plain, body = JSON.
  *   {action:"list", kod}
- *   {action:"upsertMeet", pin, meet:{id?, zawodnik, data, data_orientacyjna, zawody, basen_m, uwagi_zawodow, wyniki:[{konkurencja, czas_s, uwagi_wyniku}]}}
- *   {action:"deleteMeet", pin, id}
+ *   {action:"upsertMeet", meet:{id?, zawodnik, data, data_orientacyjna, zawody, basen_m, uwagi_zawodow, wyniki:[{konkurencja, czas_s, uwagi_wyniku}]}}
+ *   {action:"deleteMeet", id}
  * Odpowiedź: {ok:true, ...} albo {ok:false, error:"<po polsku>", code:"<kod maszynowy>"}.
  *
- * Sekrety wyłącznie w Script Properties (Z-5): KOD_RODZINNY (pusty = oglądanie otwarte), PIN_EDYCJI.
+ * Sekrety wyłącznie w Script Properties (Z-5): KOD_RODZINNY (pusty = oglądanie otwarte).
+ * Zapis i usuwanie nie wymagają PIN-u (świadoma decyzja właściciela).
  */
 
 var ID_BAZY = '1kG1AV9n023sFUvBRLnYDaNzgrUHi4Fw0PofB5Bd5Q2s';
@@ -138,11 +139,9 @@ function sprawdzKod_(kod) {
     'Błędny kod rodzinny.', 'Zbyt wiele błędnych prób kodu. Spróbuj ponownie za 10 minut.');
 }
 
-function sprawdzPin_(pin) {
-  var wzor = prop_('PIN_EDYCJI');
-  if (!wzor) return blad_('Zapis jest wyłączony: nie ustawiono PIN_EDYCJI.', 'pin');
-  return sprawdzSekret_('pin', pin, wzor,
-    'Błędny PIN do edycji.', 'Zbyt wiele błędnych prób PIN-u. Spróbuj ponownie za 10 minut.');
+/** Zapis bez PIN-u: przepuszcza zawsze. */
+function sprawdzPin_() {
+  return null;
 }
 
 /** Zwraca null, gdy sekret się zgadza; w przeciwnym razie odpowiedź z błędem. Limit prób w CacheService. */
@@ -150,7 +149,7 @@ function sprawdzSekret_(rodzaj, podany, wzor, komunikat, komunikatBlokady) {
   var cache = CacheService.getScriptCache();
   var kBlok = 'blokada_' + rodzaj, kProby = 'proby_' + rodzaj;
   if (cache.get(kBlok)) return blad_(komunikatBlokady, 'blokada');
-  if (!podany) return blad_(rodzaj === 'pin' ? 'Podaj PIN do edycji.' : 'Podaj kod rodzinny.', rodzaj);
+  if (!podany) return blad_('Podaj kod rodzinny.', rodzaj);
   if (rowne_(String(podany), String(wzor))) return null;
   var n = Number(cache.get(kProby) || 0) + 1;
   if (n >= LIMIT_PROB) {
@@ -358,6 +357,5 @@ function json_(o) {
 function autoryzuj() {
   var ss = SpreadsheetApp.openById(ID_BAZY);
   console.log('OK: ' + ss.getName() + ', wierszy w wynikach: ' + (ss.getSheetByName(ARK_WYNIKI).getLastRow() - 1)
-    + ', KOD_RODZINNY: ' + (prop_('KOD_RODZINNY') ? 'ustawiony' : 'PUSTY (oglądanie otwarte)')
-    + ', PIN_EDYCJI: ' + (prop_('PIN_EDYCJI') ? 'ustawiony' : 'PUSTY (zapis wyłączony)'));
+    + ', KOD_RODZINNY: ' + (prop_('KOD_RODZINNY') ? 'ustawiony' : 'PUSTY (oglądanie otwarte)'));
 }

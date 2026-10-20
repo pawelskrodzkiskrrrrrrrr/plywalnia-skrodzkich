@@ -16,7 +16,8 @@ Docelowo działa pod adresem https://plywalniaskrodzkich.pl.
 - Dane dzieci to dane osobowe (Z-12):
   - nie trafiają do repo (repo jest publiczne), logów, zrzutów w repo ani issue;
   - strona ma `noindex`, a `robots.txt` blokuje indeksowanie.
-- Kody `KOD_RODZINNY` i `PIN_EDYCJI` są wyłącznie w Script Properties (Z-5).
+- Kod `KOD_RODZINNY` jest wyłącznie w Script Properties (Z-5).
+- Zapis i usuwanie nie wymagają PIN-u (świadoma decyzja właściciela, wyjątek). `PIN_EDYCJI` nie jest używany.
 - Każdy nowy ekran obsługuje tryb ciemny i RWD. Przed zmianą interfejsu najpierw mockup.
 - Czasy przechowuj w sekundach (`czas_s`, liczba z dwoma miejscami po przecinku). Wyświetlaj jako `m:ss,hh`.
 - Rekord życiowy liczy się automatycznie jako minimum w danej konkurencji, z uwzględnieniem filtra basenu. Nie ma ręcznego oznaczania.

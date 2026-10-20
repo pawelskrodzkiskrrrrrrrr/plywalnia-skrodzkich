@@ -4,7 +4,7 @@
 # (3) tworzy albo aktualizuje wdrożenie Web App (ten sam URL), (4) wpisuje URL do docs/config.js,
 # (5) commit + git push (GitHub Pages opublikuje front).
 # Plik zapisany jako UTF-8 z BOM (wymaga tego Windows PowerShell 5.1).
-# Nie dotyka sekretów: KOD_RODZINNY i PIN_EDYCJI ustawiasz ręcznie w Script Properties.
+# Nie dotyka sekretów: KOD_RODZINNY ustawiasz ręcznie w Script Properties.
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot

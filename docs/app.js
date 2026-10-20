@@ -79,7 +79,7 @@ function spark(pts){
   const xs=pts.map((_,i)=>p+i*(W-2*p)/(pts.length-1)), ys=pts.map(x=>p+(x.t-mn)/rg*(H-2*p));
   const d=xs.map((x,i)=>(i?'L':'M')+x.toFixed(1)+' '+ys[i].toFixed(1)).join('');
   const bi=pts.findIndex(x=>x.current);
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${xs[bi]}" cy="${ys[bi]}" r="4" fill="var(--gold)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${xs[bi]}" cy="${ys[bi]}" r="4" fill="var(--pb)" stroke="var(--surface)" stroke-width="2"/></svg>`;
 }
 function renderCards(v,kid,evs){
   v.innerHTML=`<div class="cards">${evs.map(e=>{
@@ -147,7 +147,7 @@ function renderTable(v,kid,km,evs){
         const title=`${evLabel(e)} — ${fmt(p.t)}${d!=null?' ('+fmtDelta(d)+' vs poprzedni start)':''}${p.n?' · '+p.n:''}${p.m.note?' · '+p.m.note:''}`;
         return `<td class="c ${cls}" title="${esc(title)}"><span class="cell">${fmt(p.t)}</span></td>`}).join('')}</tr>`}).join('')}
     </tbody></table></div>
-  <div class="legend"><span><i style="background:var(--gold)"></i>aktualny rekord życiowy</span><span><i style="box-shadow:inset 0 0 0 1px var(--gold)"></i>poprawiona życiówka w tamtym momencie</span><span>≈ / „data?” — data orientacyjna</span></div>`;
+  <div class="legend"><span><i style="background:var(--pb)"></i>aktualny rekord życiowy</span><span><i style="box-shadow:inset 0 0 0 2px var(--pb)"></i>poprawiona życiówka w tamtym momencie</span><span>≈ / „data?” — data orientacyjna</span></div>`;
   bindTblBar(v);
 }
 
@@ -158,7 +158,7 @@ function renderChart(v,kid,evs){
   const who=ui.compare?kids.filter(k=>series(k.id,ev).length):[kid];
   v.innerHTML=`<div class="chart-card">
     <div class="chart-head">
-      <div><h2>${esc(evLabel(ev))}</h2><div class="sub">Wyżej = szybciej. Złote punkty to poprawione życiówki.</div></div>
+      <div><h2>${esc(evLabel(ev))}</h2><div class="sub">Wyżej = szybciej. Zielone punkty to poprawione życiówki.</div></div>
       <div class="filters">
         <select class="inp" id="evSel" aria-label="Konkurencja">${evs.map(e=>`<option value="${esc(e)}" ${e===ev?'selected':''}>${esc(evLabel(e))}</option>`).join('')}</select>
         <label class="chk"><input type="checkbox" id="cmp" ${ui.compare?'checked':''}> Porównaj rodzeństwo</label>
@@ -208,7 +208,7 @@ function drawChart(box,data){
     const pts=ds.pts.map(p=>({...p,x:sx(dnum(p.m.date)),y:sy(p.t),col,kid:ds.k}));
     if(pts.length>1)marks+=`<path d="${pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join('')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     pts.forEach(p=>{const pb=p.pbAtTime;
-      marks+=`<circle cx="${p.x}" cy="${p.y}" r="${p.current?7:pb?5.5:4.5}" fill="${pb?'var(--gold)':col}" stroke="${pb?col:'var(--surface)'}" stroke-width="2"/>`;
+      marks+=`<circle cx="${p.x}" cy="${p.y}" r="${p.current?7:pb?5.5:4.5}" fill="${pb?'var(--pb)':col}" stroke="${pb?col:'var(--surface)'}" stroke-width="2"/>`;
       hits.push(p)});
     const cur=pts.find(p=>p.current);
     if(cur&&data.length===1){const lx=Math.min(Math.max(cur.x,L+40),W-R-40);marks+=`<text x="${lx}" y="${cur.y-13}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" class="num">PB ${fmt(cur.t)}</text>`}
@@ -315,7 +315,7 @@ function openForm(meet){
   setTimeout(()=>$('#fName')?.focus(),30);
 }
 let toastT;
-function toast(msg,gold){clearTimeout(toastT);$('#toast-root').innerHTML=`<div class="toast${gold?' gold':''}" role="status">${esc(msg)}</div>`;toastT=setTimeout(()=>{$('#toast-root').innerHTML=''},gold?6000:3000)}
+function toast(msg,pb){clearTimeout(toastT);$('#toast-root').innerHTML=`<div class="toast${pb?' pb':''}" role="status">${esc(msg)}</div>`;toastT=setTimeout(()=>{$('#toast-root').innerHTML=''},pb?6000:3000)}
 
 const addH=()=>{if(!ready.kids||!ready.meets){toast('Poczekaj, aż wyniki się wczytają');return}openForm(null)};$('#addBtn').onclick=addH;$('#fab').onclick=addH;
 
